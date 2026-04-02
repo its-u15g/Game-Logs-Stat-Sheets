@@ -1,1 +1,474 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ITS U-15G | タブレット スタッツ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --team-main: #0A2444;
+            --team-sub: #0077B6;
+            --team-accent: #F59E0B;
+            --bg-color: #e2e8f0;
+        }
+        body { 
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif; 
+            background-color: var(--bg-color);
+            color: #334155;
+            overscroll-behavior-y: none;
+        }
+        .text-team-main { color: var(--team-main); }
+        .text-team-sub { color: var(--team-sub); }
+        .bg-team-main { background-color: var(--team-main); }
+        .bg-team-sub { background-color: var(--team-sub); }
+        .bg-team-accent { background-color: var(--team-accent); }
+        
+        button { touch-action: manipulation; transition: transform 0.05s, opacity 0.2s; }
+        .btn-tap:active { transform: scale(0.95); opacity: 0.9; }
+        .stat-value { font-variant-numeric: tabular-nums; font-family: 'Arial', sans-serif; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-animate { animation: fadeIn 0.2s ease-out; }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
 
+    <header class="bg-team-main text-white shadow-md z-20 flex-shrink-0 flex flex-col">
+        <div class="w-full max-w-5xl mx-auto px-2 py-1.5 flex justify-between items-center border-b border-white/10">
+            <h1 class="text-sm sm:text-base font-bold tracking-wider flex items-center">
+                <i class="fas fa-clipboard-check mr-1.5 text-team-sub"></i> ITS U-15G
+            </h1>
+            <div class="flex gap-2">
+                <button onclick="undo()" id="undo-btn" class="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded shadow-sm disabled:opacity-30 disabled:cursor-not-allowed flex items-center btn-tap">
+                    <i class="fas fa-undo mr-1"></i> 戻す
+                </button>
+                <button onclick="saveToSpreadsheet()" id="save-btn" class="px-3 py-1 bg-team-accent hover:bg-yellow-500 text-white text-xs font-bold rounded shadow-sm flex items-center btn-tap">
+                    <i class="fas fa-cloud-upload-alt mr-1"></i> 記録を保存
+                </button>
+            </div>
+        </div>
+        
+        <div class="w-full bg-[#06172e] py-1.5 px-2">
+            <div class="max-w-5xl mx-auto" id="gk-header-container"></div>
+        </div>
+    </header>
+
+    <div class="flex-grow w-full max-w-5xl mx-auto px-1 sm:px-2 pt-2 pb-4 overflow-x-hidden">
+        <div id="cp-container" class="grid grid-cols-2 md:grid-cols-3 gap-1.5 sm:gap-2"></div>
+    </div>
+
+    <div class="bg-white border-t-4 border-team-main p-3 shadow-inner mt-auto flex-shrink-0">
+        <div class="max-w-5xl mx-auto">
+            <div class="grid grid-cols-3 gap-2 sm:gap-4 text-center">
+                <div class="bg-blue-50/80 rounded-lg p-2 border border-blue-100">
+                    <div class="text-[10px] sm:text-xs text-team-sub font-bold mb-0.5">チーム決定率</div>
+                    <div class="text-lg sm:text-2xl font-black text-team-sub stat-value leading-none">
+                        <span id="team-cp-rate">0.0</span><span class="text-xs sm:text-sm">%</span>
+                    </div>
+                    <div class="text-[9px] sm:text-[10px] text-slate-500 mt-0.5">(<span id="team-cp-goals">0</span> / <span id="team-cp-total">0</span>)</div>
+                </div>
+                <div class="bg-amber-50/80 rounded-lg p-2 border border-amber-100">
+                    <div class="text-[10px] sm:text-xs text-amber-600 font-bold mb-0.5">総ミス数</div>
+                    <div class="text-lg sm:text-2xl font-black text-amber-500 stat-value leading-none" id="team-cp-errors">0</div>
+                    <div class="text-[9px] sm:text-[10px] text-slate-500 mt-0.5">チーム全体</div>
+                </div>
+                <div class="bg-slate-50 rounded-lg p-2 border border-slate-200">
+                    <div class="text-[10px] sm:text-xs text-team-main font-bold mb-0.5">チームGKセーブ率</div>
+                    <div class="text-lg sm:text-2xl font-black text-team-main stat-value leading-none">
+                        <span id="team-gk-rate">0.0</span><span class="text-xs sm:text-sm">%</span>
+                    </div>
+                    <div class="text-[9px] sm:text-[10px] text-slate-500 mt-0.5">(<span id="team-gk-saves">0</span> / <span id="team-gk-total">0</span>)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="swap-modal" class="hidden fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm modal-animate">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="bg-team-main text-white px-4 py-3 flex justify-between items-center">
+                <h3 class="font-bold flex items-center"><i class="fas fa-exchange-alt mr-2 text-team-sub"></i> 選手を交代</h3>
+                <button onclick="closeSwapModal()" class="text-white/70 hover:text-white text-xl p-1 leading-none">&times;</button>
+            </div>
+            <div class="bg-slate-50 px-3 py-2 text-xs text-slate-500 font-bold border-b border-slate-200">ベンチメンバー（交代候補）</div>
+            <div class="p-2 overflow-y-auto space-y-1.5 flex-grow" id="swap-list"></div>
+            <div class="p-3 border-t border-slate-200 bg-white">
+                <button onclick="executeAddNew()" class="w-full py-2.5 bg-blue-50 text-team-sub font-bold rounded-lg border border-blue-200 hover:bg-blue-100 flex justify-center items-center gap-1 transition-colors btn-tap">
+                    <i class="fas fa-user-plus"></i> 新しい選手を追加して交代
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 設定情報 ---
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzVq24DpMl9rmH2wj9a31WZKdHt5kLx0IPhcLszblpNqcZmgf3UEhWQjEqc9I5ikz9wmg/exec";
+
+        // --- データ初期化 ---
+        const initialShots = () => ({
+            L: { goals: 0, miss: 0 }, M: { goals: 0, miss: 0 },
+            C: { goals: 0, miss: 0 }, F: { goals: 0, miss: 0 }, S: { goals: 0, miss: 0 }
+        });
+
+        let state = {
+            allPlayers: {
+                cp: [
+                    { id: 'cp_1', name: '選手 1', shots: initialShots(), errors: 0 },
+                    { id: 'cp_2', name: '選手 2', shots: initialShots(), errors: 0 },
+                    { id: 'cp_3', name: '選手 3', shots: initialShots(), errors: 0 },
+                    { id: 'cp_4', name: '選手 4', shots: initialShots(), errors: 0 },
+                    { id: 'cp_5', name: '選手 5', shots: initialShots(), errors: 0 },
+                    { id: 'cp_6', name: '選手 6', shots: initialShots(), errors: 0 }
+                ],
+                gk: [
+                    { id: 'gk_1', name: 'キーパー 1', saves: 0, goalsAllowed: 0 }
+                ]
+            },
+            activeCPIds: ['cp_1', 'cp_2', 'cp_3', 'cp_4', 'cp_5', 'cp_6'],
+            activeGKId: 'gk_1'
+        };
+
+        let history = []; 
+        let selectedShotTypes = {}; 
+        let currentSwapTarget = { type: null, index: null }; 
+
+        // --- スプレッドシート送信処理 ---
+        async function saveToSpreadsheet() {
+            let payload = [];
+
+            // CPのデータを抽出（入力が1つでもある選手のみ）
+            state.allPlayers.cp.forEach(p => {
+                let totalShots = 0;
+                for(let t in p.shots) totalShots += p.shots[t].goals + p.shots[t].miss;
+                
+                if (totalShots > 0 || p.errors > 0) {
+                    payload.push({
+                        name: p.name,
+                        position: 'CP',
+                        L_goals: p.shots.L.goals, L_miss: p.shots.L.miss,
+                        M_goals: p.shots.M.goals, M_miss: p.shots.M.miss,
+                        C_goals: p.shots.C.goals, C_miss: p.shots.C.miss,
+                        F_goals: p.shots.F.goals, F_miss: p.shots.F.miss,
+                        S_goals: p.shots.S.goals, S_miss: p.shots.S.miss,
+                        errors: p.errors
+                    });
+                }
+            });
+
+            // GKのデータを抽出
+            state.allPlayers.gk.forEach(p => {
+                if (p.saves > 0 || p.goalsAllowed > 0) {
+                    payload.push({
+                        name: p.name,
+                        position: 'GK',
+                        saves: p.saves,
+                        allowed: p.goalsAllowed
+                    });
+                }
+            });
+
+            if(payload.length === 0) {
+                alert("送信するデータがありません。（スタッツが入力されていません）");
+                return;
+            }
+
+            const btn = document.getElementById('save-btn');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> 送信中...';
+            btn.disabled = true;
+
+            try {
+                // GASへPOST送信
+                await fetch(GAS_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify(payload)
+                });
+
+                alert("スプレッドシートへの記録が完了しました！");
+
+                if(confirm("現在のスタッツをリセットして新しく記録を始めますか？\n（後半戦や次の試合用）")) {
+                    resetAllStats();
+                }
+            } catch(e) {
+                alert("通信エラーが発生しました。電波状況を確認してください。");
+                console.error(e);
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        }
+
+        function resetAllStats() {
+            state.allPlayers.cp.forEach(p => { p.shots = initialShots(); p.errors = 0; });
+            state.allPlayers.gk.forEach(p => { p.saves = 0; p.goalsAllowed = 0; });
+            history = [];
+            selectedShotTypes = {};
+            renderAll();
+        }
+
+        // --- 以下、既存のロジック（v4と同じ） ---
+        function saveState() {
+            history.push(JSON.parse(JSON.stringify(state)));
+            if (history.length > 20) history.shift(); 
+            document.getElementById('undo-btn').disabled = false;
+        }
+
+        function undo() {
+            if (history.length > 0) {
+                state = history.pop();
+                if (history.length === 0) document.getElementById('undo-btn').disabled = true;
+                selectedShotTypes = {}; 
+                renderAll(); 
+            }
+        }
+
+        function updateName(type, id, newName) {
+            const player = state.allPlayers[type].find(p => p.id === id);
+            if (player) player.name = newName;
+            renderAll();
+        }
+
+        function selectType(id, type) {
+            selectedShotTypes[id] = type;
+            ['L', 'M', 'C', 'F', 'S'].forEach(t => {
+                const btn = document.getElementById(`type-${t}-${id}`);
+                if (btn) btn.className = (t === type) 
+                    ? "flex-1 py-1 sm:py-1.5 text-[10px] sm:text-xs font-bold rounded border bg-team-main text-white border-team-main transform scale-95 shadow-inner"
+                    : "flex-1 py-1 sm:py-1.5 text-[10px] sm:text-xs font-bold rounded border bg-slate-50 text-slate-500 border-slate-300 hover:bg-slate-100";
+            });
+        }
+
+        function resetTypeSelection(id) {
+            selectedShotTypes[id] = null;
+            ['L', 'M', 'C', 'F', 'S'].forEach(t => {
+                const btn = document.getElementById(`type-${t}-${id}`);
+                if (btn) btn.className = "flex-1 py-1 sm:py-1.5 text-[10px] sm:text-xs font-bold rounded border bg-slate-50 text-slate-500 border-slate-300 hover:bg-slate-100";
+            });
+        }
+
+        function showWarning(id) {
+            const warn = document.getElementById(`warn-${id}`);
+            if (warn) {
+                warn.classList.remove('hidden'); warn.classList.add('flex');
+                setTimeout(() => { warn.classList.add('hidden'); warn.classList.remove('flex'); }, 1500);
+            }
+        }
+
+        function recordCP(id, action) {
+            const player = state.allPlayers.cp.find(p => p.id === id);
+            if (!player) return;
+
+            if (action === 'goal' || action === 'miss') {
+                const type = selectedShotTypes[id];
+                if (!type) { showWarning(id); return; }
+                saveState();
+                if (action === 'goal') player.shots[type].goals++;
+                else if (action === 'miss') player.shots[type].miss++;
+                resetTypeSelection(id); 
+                updateDisplays();
+            } else if (action === 'error') {
+                saveState(); player.errors++; updateDisplays();
+            }
+        }
+
+        function recordGK(id, action) {
+            saveState();
+            const player = state.allPlayers.gk.find(p => p.id === id);
+            if (!player) return;
+            if (action === 'save') player.saves++;
+            else if (action === 'allowed') player.goalsAllowed++;
+            updateDisplays();
+        }
+
+        function openSwapModal(type, index = 0) {
+            currentSwapTarget = { type, index };
+            const modal = document.getElementById('swap-modal');
+            const listContainer = document.getElementById('swap-list');
+            
+            const activeIds = type === 'cp' ? state.activeCPIds : [state.activeGKId];
+            const benchPlayers = state.allPlayers[type].filter(p => !activeIds.includes(p.id));
+
+            if (benchPlayers.length === 0) {
+                listContainer.innerHTML = `<div class="text-center text-slate-400 py-4 text-sm">ベンチに選手がいません。<br>「新しい選手を追加」してください。</div>`;
+            } else {
+                listContainer.innerHTML = benchPlayers.map(p => {
+                    let statText = "";
+                    if (type === 'cp') {
+                        let g=0, m=0;
+                        for(let t in p.shots){ g+=p.shots[t].goals; m+=p.shots[t].miss; }
+                        statText = `シュート: ${g}/${g+m}`;
+                    } else {
+                        statText = `セーブ: ${p.saves}/${p.saves+p.goalsAllowed}`;
+                    }
+                    return `
+                        <button onclick="executeSwap('${p.id}')" class="w-full text-left bg-white border border-slate-200 p-3 rounded-lg hover:bg-slate-50 hover:border-team-sub transition-colors flex justify-between items-center btn-tap">
+                            <span class="font-bold text-slate-700">${p.name}</span>
+                            <span class="text-xs text-slate-400">${statText}</span>
+                        </button>
+                    `;
+                }).join('');
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeSwapModal() { document.getElementById('swap-modal').classList.add('hidden'); }
+
+        function executeSwap(newPlayerId) {
+            saveState();
+            if (currentSwapTarget.type === 'cp') state.activeCPIds[currentSwapTarget.index] = newPlayerId;
+            else state.activeGKId = newPlayerId;
+            closeSwapModal(); renderAll();
+        }
+
+        function executeAddNew() {
+            const type = currentSwapTarget.type;
+            const newId = type + '_' + Date.now();
+            const newNum = state.allPlayers[type].length + 1;
+            
+            if (type === 'cp') state.allPlayers.cp.push({ id: newId, name: `追加選手 ${newNum}`, shots: initialShots(), errors: 0 });
+            else state.allPlayers.gk.push({ id: newId, name: `追加GK ${newNum}`, saves: 0, goalsAllowed: 0 });
+            executeSwap(newId);
+        }
+
+        function updateDisplays() {
+            let totalCPGoals = 0, totalCPShots = 0, totalCPErrors = 0;
+            state.allPlayers.cp.forEach(p => {
+                let pGoals = 0, pMiss = 0;
+                for (const t of ['L', 'M', 'C', 'F', 'S']) {
+                    pGoals += p.shots[t].goals; pMiss += p.shots[t].miss;
+                    if(state.activeCPIds.includes(p.id)) {
+                        const statElem = document.getElementById(`stat-${t}-${p.id}`);
+                        if (statElem) statElem.textContent = `${t}:${p.shots[t].goals}/${p.shots[t].goals + p.shots[t].miss}`;
+                    }
+                }
+                const pShots = pGoals + pMiss;
+                totalCPGoals += pGoals; totalCPShots += pShots; totalCPErrors += p.errors;
+                
+                if(state.activeCPIds.includes(p.id)) {
+                    const rate = pShots === 0 ? 0 : (pGoals / pShots) * 100;
+                    document.getElementById(`cp-total-${p.id}`).textContent = pShots;
+                    document.getElementById(`cp-goals-${p.id}`).textContent = pGoals;
+                    document.getElementById(`cp-rate-${p.id}`).textContent = rate.toFixed(0);
+                    document.getElementById(`cp-errors-${p.id}`).textContent = p.errors;
+                }
+            });
+
+            const teamCPRate = totalCPShots === 0 ? 0 : (totalCPGoals / totalCPShots) * 100;
+            document.getElementById('team-cp-goals').textContent = totalCPGoals;
+            document.getElementById('team-cp-total').textContent = totalCPShots;
+            document.getElementById('team-cp-rate').textContent = teamCPRate.toFixed(1);
+            document.getElementById('team-cp-errors').textContent = totalCPErrors;
+
+            let totalGKSaves = 0, totalGKShots = 0;
+            state.allPlayers.gk.forEach(p => {
+                const faced = p.saves + p.goalsAllowed;
+                totalGKSaves += p.saves; totalGKShots += faced;
+                if(state.activeGKId === p.id) {
+                    const rate = faced === 0 ? 0 : (p.saves / faced) * 100;
+                    document.getElementById(`gk-total-${p.id}`).textContent = faced;
+                    document.getElementById(`gk-saves-${p.id}`).textContent = p.saves;
+                    document.getElementById(`gk-rate-${p.id}`).textContent = rate.toFixed(0);
+                }
+            });
+
+            const teamGKRate = totalGKShots === 0 ? 0 : (totalGKSaves / totalGKShots) * 100;
+            document.getElementById('team-gk-saves').textContent = totalGKSaves;
+            document.getElementById('team-gk-total').textContent = totalGKShots;
+            document.getElementById('team-gk-rate').textContent = teamGKRate.toFixed(1);
+        }
+
+        function renderAll() {
+            const gkHeaderContainer = document.getElementById('gk-header-container');
+            const activeGK = state.allPlayers.gk.find(p => p.id === state.activeGKId);
+            
+            if(activeGK) {
+                gkHeaderContainer.innerHTML = `
+                    <div class="flex justify-between items-center gap-2 sm:gap-4">
+                        <div class="flex items-center gap-1.5 flex-[1.5]">
+                            <span class="bg-team-accent text-white text-[10px] font-bold px-1 py-0.5 rounded leading-none">GK</span>
+                            <input type="text" value="${activeGK.name}" onchange="updateName('gk', '${activeGK.id}', this.value)" 
+                                class="bg-transparent border-b border-white/30 text-white font-bold w-full max-w-[120px] text-sm sm:text-base focus:outline-none focus:border-team-accent pb-0.5" placeholder="GK名">
+                            <button onclick="openSwapModal('gk')" class="text-slate-400 hover:text-white p-1 ml-1 btn-tap"><i class="fas fa-exchange-alt"></i></button>
+                        </div>
+                        <div class="text-[10px] sm:text-xs text-slate-300 text-center flex-1 leading-tight">
+                            セーブ <span class="font-bold text-white text-sm sm:text-base stat-value ml-0.5" id="gk-saves-${activeGK.id}">0</span><span class="text-white/50 mx-0.5">/</span><span id="gk-total-${activeGK.id}" class="text-white">0</span>
+                            <span class="text-team-accent ml-1 font-bold">(<span id="gk-rate-${activeGK.id}">0</span>%)</span>
+                        </div>
+                        <div class="flex gap-1.5 flex-[1.2] justify-end">
+                            <button onclick="recordGK('${activeGK.id}', 'save')" class="flex-1 bg-team-sub hover:bg-blue-600 text-white font-bold py-1.5 sm:py-2 rounded shadow-sm btn-tap text-xs sm:text-sm shadow-inner flex justify-center items-center gap-1">
+                                <i class="fas fa-hand-paper opacity-80 text-[10px]"></i> セーブ
+                            </button>
+                            <button onclick="recordGK('${activeGK.id}', 'allowed')" class="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-bold py-1.5 sm:py-2 rounded shadow-sm btn-tap text-xs sm:text-sm shadow-inner flex justify-center items-center gap-1">
+                                <i class="fas fa-sign-in-alt opacity-80 text-[10px]"></i> 失点
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const cpContainer = document.getElementById('cp-container');
+            const typeLabels = { L: 'ﾃﾞｨｽﾀﾝｽ', M: 'ﾐﾄﾞﾙ', C: 'ｶｯﾄｲﾝ', F: 'ﾉｰﾏｰｸ', S: 'ｻｲﾄﾞ' };
+
+            cpContainer.innerHTML = state.activeCPIds.map((id, index) => {
+                const p = state.allPlayers.cp.find(x => x.id === id);
+                if(!p) return '';
+
+                const typesHtml = ['L', 'M', 'C', 'F', 'S'].map(t => {
+                    const isSelected = selectedShotTypes[p.id] === t;
+                    const className = isSelected 
+                        ? "flex-1 py-1.5 text-xs sm:text-sm font-bold rounded border bg-team-main text-white border-team-main transform scale-95 shadow-inner"
+                        : "flex-1 py-1.5 text-xs sm:text-sm font-bold rounded border bg-slate-50 text-slate-500 border-slate-300 hover:bg-slate-100";
+                    return `<button onclick="selectType('${p.id}', '${t}')" id="type-${t}-${p.id}" class="${className} flex flex-col items-center justify-center btn-tap leading-none">
+                                <span>${t}</span>
+                                <span class="text-[8px] sm:text-[9px] font-normal mt-1 opacity-80">${typeLabels[t]}</span>
+                            </button>`;
+                }).join('');
+
+                const statsHtml = ['L', 'M', 'C', 'F', 'S'].map(t => `<span id="stat-${t}-${p.id}" class="text-[9px] sm:text-[10px] text-slate-400 font-mono tracking-tighter">${t}:0/0</span>`).join('<span class="text-slate-200">|</span>');
+
+                return `
+                <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-2 sm:p-2.5 flex flex-col relative">
+                    <div id="warn-${p.id}" class="hidden absolute inset-0 z-10 bg-rose-500/95 text-white flex-col items-center justify-center rounded-lg font-bold backdrop-blur-sm">
+                        <i class="fas fa-hand-point-up text-xl sm:text-2xl mb-1 animate-bounce"></i>
+                        <span class="text-xs sm:text-sm">シュート種類を選択！</span>
+                    </div>
+                    <div class="flex justify-between items-end mb-1.5 pb-1 border-b border-slate-100">
+                        <div class="flex items-center gap-1 w-[55%]">
+                            <input type="text" value="${p.name}" onchange="updateName('cp', '${p.id}', this.value)" 
+                                class="font-bold text-sm sm:text-base text-team-main bg-transparent border-b border-transparent focus:border-team-sub focus:outline-none w-full py-0 truncate" placeholder="選手名">
+                            <button onclick="openSwapModal('cp', ${index})" class="text-slate-300 hover:text-team-sub p-1 bg-slate-50 rounded-full btn-tap border border-slate-100" title="選手交代">
+                                <i class="fas fa-exchange-alt text-xs"></i>
+                            </button>
+                        </div>
+                        <div class="text-right leading-tight">
+                            <div class="text-[9px] sm:text-[10px] font-bold text-slate-500">
+                                シュート <span class="text-slate-800 text-xs sm:text-sm stat-value"><span id="cp-goals-${p.id}">0</span>/<span id="cp-total-${p.id}">0</span></span>
+                                <span class="text-team-sub ml-0.5">(<span id="cp-rate-${p.id}">0</span>%)</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex gap-1 mb-1.5 w-full">${typesHtml}</div>
+                    <div class="flex gap-1 w-full">
+                        <button onclick="recordCP('${p.id}', 'goal')" class="flex-[2] bg-team-sub text-white font-bold py-2 sm:py-2.5 rounded shadow-sm btn-tap text-sm sm:text-base">ゴール</button>
+                        <button onclick="recordCP('${p.id}', 'miss')" class="flex-[2] bg-slate-400 text-white font-bold py-2 sm:py-2.5 rounded shadow-sm btn-tap text-sm sm:text-base">失敗</button>
+                        <div class="w-[1px] bg-slate-200 mx-0.5"></div>
+                        <button onclick="recordCP('${p.id}', 'error')" class="flex-[1] bg-team-accent text-white font-bold py-2 sm:py-2.5 rounded shadow-sm btn-tap flex flex-col justify-center items-center leading-none">
+                            <span class="text-[9px] sm:text-[10px]">ミス</span>
+                            <span class="text-xs sm:text-sm font-black mt-0.5" id="cp-errors-${p.id}">0</span>
+                        </button>
+                    </div>
+                    <div class="w-full mt-1.5 pt-1 border-t border-dashed border-slate-200 flex justify-between px-0.5">${statsHtml}</div>
+                </div>
+                `;
+            }).join('');
+
+            document.getElementById('undo-btn').disabled = history.length === 0;
+            updateDisplays();
+        }
+
+        renderAll();
+    </script>
+</body>
+</html>
