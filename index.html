@@ -59,8 +59,22 @@
         <div id="cp-container" class="grid grid-cols-2 md:grid-cols-3 gap-1.5 sm:gap-2"></div>
     </div>
 
+    <!-- 試合情報 ＆ チーム全体サマリー（下部） -->
     <div class="bg-white border-t-4 border-team-main p-3 shadow-inner mt-auto flex-shrink-0">
         <div class="max-w-5xl mx-auto">
+            
+            <!-- 🆕 試合情報入力エリア -->
+            <div class="flex gap-2 mb-3 border-b border-slate-100 pb-3">
+                <div class="flex-[1]">
+                    <label class="block text-[10px] sm:text-xs font-bold text-slate-500 mb-0.5">試合日</label>
+                    <input type="date" id="match-date" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-xs sm:text-sm focus:outline-none focus:border-team-sub focus:bg-white transition-colors">
+                </div>
+                <div class="flex-[2]">
+                    <label class="block text-[10px] sm:text-xs font-bold text-slate-500 mb-0.5">対戦相手</label>
+                    <input type="text" id="opponent-name" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-xs sm:text-sm focus:outline-none focus:border-team-sub focus:bg-white transition-colors" placeholder="例：〇〇中学校">
+                </div>
+            </div>
+
             <div class="grid grid-cols-3 gap-2 sm:gap-4 text-center">
                 <div class="bg-blue-50/80 rounded-lg p-2 border border-blue-100">
                     <div class="text-[10px] sm:text-xs text-team-sub font-bold mb-0.5">チーム決定率</div>
@@ -105,6 +119,15 @@
         // --- 設定情報 ---
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzVq24DpMl9rmH2wj9a31WZKdHt5kLx0IPhcLszblpNqcZmgf3UEhWQjEqc9I5ikz9wmg/exec";
 
+        // --- 初期日付のセット ---
+        window.onload = () => {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            document.getElementById('match-date').value = `${yyyy}-${mm}-${dd}`;
+        };
+
         // --- データ初期化 ---
         const initialShots = () => ({
             L: { goals: 0, miss: 0 }, M: { goals: 0, miss: 0 },
@@ -135,15 +158,21 @@
 
         // --- スプレッドシート送信処理 ---
         async function saveToSpreadsheet() {
+            // 🆕 試合情報の取得
+            const matchDate = document.getElementById('match-date').value;
+            const opponent = document.getElementById('opponent-name').value || '対戦相手未入力';
+            
             let payload = [];
 
-            // CPのデータを抽出（入力が1つでもある選手のみ）
+            // CPのデータを抽出
             state.allPlayers.cp.forEach(p => {
                 let totalShots = 0;
                 for(let t in p.shots) totalShots += p.shots[t].goals + p.shots[t].miss;
                 
                 if (totalShots > 0 || p.errors > 0) {
                     payload.push({
+                        matchDate: matchDate, // 🆕追加
+                        opponent: opponent,   // 🆕追加
                         name: p.name,
                         position: 'CP',
                         L_goals: p.shots.L.goals, L_miss: p.shots.L.miss,
@@ -160,6 +189,8 @@
             state.allPlayers.gk.forEach(p => {
                 if (p.saves > 0 || p.goalsAllowed > 0) {
                     payload.push({
+                        matchDate: matchDate, // 🆕追加
+                        opponent: opponent,   // 🆕追加
                         name: p.name,
                         position: 'GK',
                         saves: p.saves,
@@ -205,10 +236,12 @@
             state.allPlayers.gk.forEach(p => { p.saves = 0; p.goalsAllowed = 0; });
             history = [];
             selectedShotTypes = {};
+            // リセット時は対戦相手もクリア（連戦対策）
+            document.getElementById('opponent-name').value = ''; 
             renderAll();
         }
 
-        // --- 以下、既存のロジック（v4と同じ） ---
+        // --- 以下、既存のロジック ---
         function saveState() {
             history.push(JSON.parse(JSON.stringify(state)));
             if (history.length > 20) history.shift(); 
