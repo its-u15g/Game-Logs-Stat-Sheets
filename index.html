@@ -51,7 +51,8 @@
         .tab-inactive { border-bottom: 2px solid transparent; background-color: #1e293b; color: #94a3b8; }
     </style>
 </head>
-<body class="flex flex-col h-screen overflow-hidden selection:bg-[#0077B6] selection:text-white">
+<!-- h-[100dvh]を使用することで、スマホのURLバー表示/非表示時のガタツキを防ぎます -->
+<body class="flex flex-col h-[100dvh] overflow-hidden selection:bg-[#0077B6] selection:text-white">
 
     <!-- 🌟 モード切替タブ -->
     <nav class="flex text-xs sm:text-sm font-bold shadow-md z-30 flex-shrink-0 relative">
@@ -64,16 +65,18 @@
     </nav>
 
     <!-- 🌟 メインスクロールエリア -->
-    <div class="flex-grow overflow-y-auto flex flex-col relative" id="main-scroll-area">
+    <div class="flex-grow overflow-y-auto flex flex-col relative w-full" id="main-scroll-area">
         
         <!-- ========================================== -->
         <!-- 📝 ビュー：入力モード -->
         <!-- ========================================== -->
-        <div id="view-input" class="flex flex-col flex-grow">
-            <!-- Glassmorphism Header -->
-            <header class="backdrop-blur-md bg-[#0A2444]/95 text-white shadow-sm z-20 flex-shrink-0 flex flex-col sticky top-0 border-b border-white/10">
+        <div id="view-input" class="flex flex-col flex-grow w-full max-w-4xl mx-auto">
+            
+            <!-- 🚫 sticky を削除し、一緒にスクロールされるヘッダーにしました -->
+            <div class="bg-[#0A2444] text-white shadow-md flex-shrink-0 flex flex-col rounded-b-xl sm:rounded-b-2xl mb-2 sm:mb-3 overflow-hidden border border-[#0A2444]/20 border-t-0">
+                
                 <!-- 上段：タイトル、スコア、ボタン -->
-                <div class="w-full max-w-4xl mx-auto px-2 sm:px-4 py-1 flex justify-between items-center">
+                <div class="w-full px-2 sm:px-4 py-1.5 sm:py-2 flex justify-between items-center bg-gradient-to-r from-[#0A2444] to-[#0f172a]">
                     <h1 class="text-[10px] sm:text-xs md:text-sm font-black tracking-widest flex items-center whitespace-nowrap drop-shadow-md">
                         <div class="w-4 h-4 sm:w-5 sm:h-5 rounded bg-gradient-to-br from-[#0077B6] to-[#0284c7] flex items-center justify-center mr-1.5 shadow-inner">
                             <i class="fas fa-clipboard-check text-white text-[8px] sm:text-[10px]"></i>
@@ -82,52 +85,52 @@
                     </h1>
                     
                     <!-- ライブスコアボード -->
-                    <div class="flex items-center bg-black/40 rounded-md px-2 py-0.5 shadow-inner mx-2 border border-white/5">
+                    <div class="flex items-center bg-black/40 rounded-md px-3 py-0.5 shadow-inner mx-2 border border-white/5">
                         <div class="flex flex-col items-center min-w-[24px] sm:min-w-[30px]">
                             <span class="text-[8px] sm:text-[9px] text-[#38bdf8] font-bold leading-none mb-0.5">TEAM</span>
-                            <span class="text-sm sm:text-lg font-black text-white leading-none stat-value" id="score-team">0</span>
+                            <span class="text-sm sm:text-xl font-black text-white leading-none stat-value" id="score-team">0</span>
                         </div>
-                        <span class="text-white/30 font-black mx-1.5 sm:mx-2 text-xs sm:text-sm">-</span>
+                        <span class="text-white/30 font-black mx-2 sm:mx-3 text-xs sm:text-base">-</span>
                         <div class="flex flex-col items-center min-w-[24px] sm:min-w-[30px]">
                             <span class="text-[8px] sm:text-[9px] text-rose-400 font-bold leading-none mb-0.5">OPP</span>
-                            <span class="text-sm sm:text-lg font-black text-white leading-none stat-value" id="score-opponent">0</span>
+                            <span class="text-sm sm:text-xl font-black text-white leading-none stat-value" id="score-opponent">0</span>
                         </div>
                     </div>
 
                     <!-- ボタン -->
-                    <div class="flex gap-1.5">
-                        <button onclick="undo()" id="undo-btn" class="px-2 py-1 sm:px-2.5 sm:py-1 bg-white/10 hover:bg-white/20 text-white text-[10px] sm:text-xs font-bold rounded shadow-sm disabled:opacity-30 transition-all flex items-center btn-tap border border-white/10">
+                    <div class="flex gap-1.5 sm:gap-2">
+                        <button onclick="undo()" id="undo-btn" class="px-2 py-1 sm:px-3 sm:py-1.5 bg-white/10 hover:bg-white/20 text-white text-[10px] sm:text-xs font-bold rounded shadow-sm disabled:opacity-30 transition-all flex items-center btn-tap border border-white/10">
                             <i class="fas fa-undo"></i><span class="hidden sm:inline ml-1">戻す</span>
                         </button>
-                        <button onclick="saveToSpreadsheet()" id="save-btn" class="px-2 py-1 sm:px-2.5 sm:py-1 bg-gradient-to-r from-[#F59E0B] to-[#d97706] hover:from-[#d97706] text-white text-[10px] sm:text-xs font-bold rounded shadow-sm flex items-center btn-tap border border-amber-400/50">
+                        <button onclick="saveToSpreadsheet()" id="save-btn" class="px-2 py-1 sm:px-3 sm:py-1.5 bg-gradient-to-r from-[#F59E0B] to-[#d97706] hover:from-[#d97706] text-white text-[10px] sm:text-xs font-bold rounded shadow-sm flex items-center btn-tap border border-amber-400/50">
                             <i class="fas fa-cloud-upload-alt mr-1"></i>保存
                         </button>
                     </div>
                 </div>
                 
-                <!-- 相手・GKパネル (極小化) -->
-                <div class="w-full bg-slate-900/60 py-1 px-2 sm:px-4 border-t border-white/5">
-                    <div class="max-w-4xl mx-auto flex flex-col gap-0.5" id="gk-header-container"></div>
+                <!-- 相手・GKパネル -->
+                <div class="w-full bg-slate-800/80 py-1.5 sm:py-2 px-2 sm:px-4 border-t border-white/5">
+                    <div class="w-full flex flex-col gap-0.5 sm:gap-1" id="gk-header-container"></div>
                 </div>
-            </header>
+            </div>
 
             <!-- CPコンテナエリア -->
-            <!-- 🚨 PC画面での下部切れを防ぐため、pb-16 (余白) を確保 -->
-            <div class="w-full max-w-4xl mx-auto px-1.5 sm:px-3 pt-2 sm:pt-3 pb-16 flex-grow flex flex-col">
-                <!-- 🚨 重要：常に3列 (grid-cols-3) に固定 -->
-                <div id="cp-container" class="grid grid-cols-3 gap-1.5 sm:gap-2 w-full"></div>
+            <div class="w-full px-1.5 sm:px-3 pb-8 sm:pb-12 flex-grow flex flex-col">
                 
-                <!-- 試合情報 (下部に配置) -->
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200/60 p-2 sm:p-3 mt-3 w-full mx-auto">
-                    <h3 class="text-[10px] sm:text-xs font-bold text-slate-700 mb-1.5 flex items-center">
-                        <i class="fas fa-info-circle text-[#0077B6] mr-1"></i> 試合情報
+                <!-- 🚨 変更ポイント: スマホは2列 (grid-cols-2)、PC/タブレットは3列 (sm:grid-cols-3) に自動切替 -->
+                <div id="cp-container" class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2.5 w-full"></div>
+                
+                <!-- 試合情報 (一番下) -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200/60 p-2.5 sm:p-4 mt-3 sm:mt-5 w-full mx-auto">
+                    <h3 class="text-[10px] sm:text-xs font-bold text-slate-700 mb-1.5 sm:mb-2 flex items-center">
+                        <i class="fas fa-info-circle text-[#0077B6] mr-1.5"></i> 試合情報
                     </h3>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 sm:gap-3">
                         <div class="flex-[1]">
-                            <input type="date" id="match-date" class="w-full bg-slate-50 border border-slate-200 rounded-md px-1.5 py-1 text-[10px] sm:text-xs font-bold text-slate-700 focus:outline-none focus:border-[#0077B6] transition-all">
+                            <input type="date" id="match-date" class="w-full bg-slate-50 border border-slate-200 rounded-md px-2 py-1.5 text-[10px] sm:text-xs font-bold text-slate-700 focus:outline-none focus:border-[#0077B6] transition-all">
                         </div>
                         <div class="flex-[2]">
-                            <input type="text" id="opponent-name" class="w-full bg-slate-50 border border-slate-200 rounded-md px-1.5 py-1 text-[10px] sm:text-xs font-bold text-slate-700 focus:outline-none focus:border-[#0077B6] transition-all" placeholder="対戦相手を入力">
+                            <input type="text" id="opponent-name" class="w-full bg-slate-50 border border-slate-200 rounded-md px-2 py-1.5 text-[10px] sm:text-xs font-bold text-slate-700 focus:outline-none focus:border-[#0077B6] transition-all" placeholder="対戦相手を入力">
                         </div>
                     </div>
                 </div>
@@ -436,10 +439,10 @@
         function undo() { if (history.length > 0) { state = history.pop(); if (history.length === 0) document.getElementById('undo-btn').disabled = true; selectedShotTypes = {}; renderAll(); } }
         function updateName(type, id, newName) { const player = state.allPlayers[type].find(p => p.id === id); if (player) player.name = newName; renderAll(); }
         
-        // 🌟 ボタンクラス (PCでも高さを抑えめにしてコンパクトに維持)
+        // 🌟 ボタンクラス (2列化に伴い少しだけ文字と余白を見やすく)
         function getBtnClass(id, t, isGk = false) {
             const isSel = selectedShotTypes[id] === t;
-            const baseSize = "py-0.5 sm:py-1 text-[9px] sm:text-[10px] font-bold rounded transition-all";
+            const baseSize = "py-1 sm:py-1.5 text-[10px] sm:text-xs font-bold rounded transition-all";
             
             if(isGk) {
                 return isSel ? `${baseSize} shadow-inner bg-[#0077B6] text-white transform scale-95` 
@@ -542,35 +545,35 @@
         function renderAll() {
             const gkHeader = document.getElementById('gk-header-container'); const activeGK = state.allPlayers.gk.find(p => p.id === state.activeGKId);
             if(activeGK) {
-                // 🌟 GKパネル (PCでも高さを抑え極小化)
+                // 🌟 GKパネル
                 gkHeader.innerHTML = `
-                    <div class="flex justify-between items-center gap-1.5 mb-1">
+                    <div class="flex justify-between items-center gap-1.5 mb-1 sm:mb-1.5">
                         <div class="flex items-center gap-1.5">
                             <span class="bg-[#0077B6] text-white text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded leading-none">GK</span>
-                            <input type="text" value="${activeGK.name}" onchange="updateName('gk', '${activeGK.id}', this.value)" class="bg-transparent border-b border-white/20 text-white font-bold w-[60px] sm:w-[80px] text-xs sm:text-sm focus:outline-none focus:border-[#38bdf8] pb-0.5" placeholder="名前">
+                            <input type="text" value="${activeGK.name}" onchange="updateName('gk', '${activeGK.id}', this.value)" class="bg-transparent border-b border-white/20 text-white font-bold w-[70px] sm:w-[90px] text-xs sm:text-sm focus:outline-none focus:border-[#38bdf8] pb-0.5" placeholder="名前">
                             <button onclick="openSwapModal('gk')" class="text-slate-400 hover:text-white p-0.5 btn-tap"><i class="fas fa-exchange-alt text-[10px] sm:text-xs"></i></button>
                         </div>
                         <div class="text-[10px] sm:text-xs text-slate-300 font-bold whitespace-nowrap">
                             SV: <span class="text-white text-xs sm:text-sm stat-value" id="gk-saves-${activeGK.id}">0</span>/<span id="gk-total-${activeGK.id}">0</span> <span class="text-[#38bdf8]">(<span id="gk-rate-${activeGK.id}">0</span>%)</span>
                         </div>
-                        <button onclick="recordOpponent('error')" class="bg-slate-800 text-slate-300 text-[9px] sm:text-[10px] px-2 py-0.5 sm:py-1 rounded shadow-sm btn-tap border border-white/10 font-bold">相手ﾐｽ</button>
+                        <button onclick="recordOpponent('error')" class="bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-[9px] sm:text-[10px] px-2 py-1 sm:py-1.5 rounded shadow-sm btn-tap border border-white/20 font-bold transition-all">相手ﾐｽ</button>
                     </div>
 
-                    <div class="flex gap-1.5 w-full relative">
+                    <div class="flex gap-1.5 sm:gap-2 w-full relative">
                         <div id="warn-${activeGK.id}" class="hidden absolute inset-0 z-10 bg-rose-500 text-white flex-col items-center justify-center rounded text-[10px] sm:text-xs font-bold">種類を選択!</div>
                         
-                        <div class="flex-[3] flex flex-col gap-0.5">
-                            <div class="grid grid-cols-4 gap-0.5 w-full">
+                        <div class="flex-[3] flex flex-col gap-0.5 sm:gap-1">
+                            <div class="grid grid-cols-4 gap-0.5 sm:gap-1 w-full">
                                 ${['L', 'M', 'C', 'P'].map(t => `<button onclick="selectType('${activeGK.id}', '${t}', true)" id="type-${t}-${activeGK.id}" class="${getBtnClass(activeGK.id, t, true)} flex items-center justify-center btn-tap"><span>${t}</span></button>`).join('')}
                             </div>
-                            <div class="grid grid-cols-3 gap-0.5 w-full">
+                            <div class="grid grid-cols-3 gap-0.5 sm:gap-1 w-full">
                                 ${['F', 'S', '7m'].map(t => `<button onclick="selectType('${activeGK.id}', '${t}', true)" id="type-${t}-${activeGK.id}" class="${getBtnClass(activeGK.id, t, true)} flex items-center justify-center btn-tap"><span>${t}</span></button>`).join('')}
                             </div>
                         </div>
 
                         <div class="flex-[2] flex gap-1">
-                            <button onclick="recordGK('${activeGK.id}', 'save')" class="flex-1 bg-[#0077B6] hover:bg-[#0284c7] text-white font-bold py-0.5 sm:py-1 rounded shadow-sm btn-tap text-[10px] sm:text-xs leading-none">ｾｰﾌﾞ</button>
-                            <button onclick="recordGK('${activeGK.id}', 'allowed')" class="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-bold py-0.5 sm:py-1 rounded shadow-sm btn-tap text-[10px] sm:text-xs leading-none">失点</button>
+                            <button onclick="recordGK('${activeGK.id}', 'save')" class="flex-1 bg-[#0077B6] hover:bg-[#0284c7] text-white font-bold py-1 sm:py-1.5 rounded shadow-sm btn-tap text-[10px] sm:text-xs leading-none">ｾｰﾌﾞ</button>
+                            <button onclick="recordGK('${activeGK.id}', 'allowed')" class="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-bold py-1 sm:py-1.5 rounded shadow-sm btn-tap text-[10px] sm:text-xs leading-none">失点</button>
                         </div>
                         <div class="flex-[0.6]">
                             <button onclick="recordGK('${activeGK.id}', 'error')" class="w-full h-full bg-[#F59E0B] text-white font-bold rounded shadow-sm btn-tap flex flex-col items-center justify-center leading-none"><span class="text-[7px] sm:text-[9px] mb-0.5 opacity-80">ﾐｽ</span><span class="text-[10px] sm:text-xs font-black" id="gk-errors-${activeGK.id}">0</span></button>
@@ -581,29 +584,29 @@
 
             const cpContainer = document.getElementById('cp-container');
             
-            // 🌟 CPコンテナ (PCでも高さを抑えコンパクトに)
+            // 🌟 CPコンテナ (2列化でより大きく表示)
             cpContainer.innerHTML = state.activeCPIds.map((id, index) => {
                 const p = state.allPlayers.cp.find(x => x.id === id); if(!p) return '';
                 
                 const typesHtml = `
-                    <div class="grid grid-cols-4 gap-0.5 mb-0.5 sm:mb-1 w-full">
+                    <div class="grid grid-cols-4 gap-0.5 sm:gap-1 mb-0.5 sm:mb-1 w-full">
                         ${['L', 'M', 'C', 'P'].map(t => `<button onclick="selectType('${p.id}', '${t}')" id="type-${t}-${p.id}" class="${getBtnClass(p.id, t)} flex items-center justify-center btn-tap"><span>${t}</span></button>`).join('')}
                     </div>
-                    <div class="grid grid-cols-3 gap-0.5 mb-1.5 w-full">
+                    <div class="grid grid-cols-3 gap-0.5 sm:gap-1 mb-1.5 sm:mb-2 w-full">
                         ${['F', 'S', '7m'].map(t => `<button onclick="selectType('${p.id}', '${t}')" id="type-${t}-${p.id}" class="${getBtnClass(p.id, t)} flex items-center justify-center btn-tap"><span>${t}</span></button>`).join('')}
                     </div>
                 `;
 
                 return `
-                <div class="bg-white rounded-lg sm:rounded-xl shadow-sm border border-slate-200/60 p-1 sm:p-1.5 flex flex-col relative h-full">
-                    <div id="warn-${p.id}" class="hidden absolute inset-0 z-10 bg-rose-500/95 text-white flex-col items-center justify-center rounded-lg sm:rounded-xl font-bold shadow-lg"><span class="text-[10px] sm:text-xs">種類を選択!</span></div>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200/80 p-1.5 sm:p-2 flex flex-col relative h-full hover:shadow-md transition-shadow">
+                    <div id="warn-${p.id}" class="hidden absolute inset-0 z-10 bg-rose-500/95 text-white flex-col items-center justify-center rounded-xl font-bold shadow-lg"><span class="text-xs sm:text-sm">種類を選択!</span></div>
                     
-                    <div class="flex justify-between items-center mb-1.5 pb-0.5 border-b border-slate-100">
-                        <div class="flex items-center gap-1 w-[50%]">
-                            <input type="text" value="${p.name}" onchange="updateName('cp', '${p.id}', this.value)" class="font-bold text-[10px] sm:text-xs md:text-sm text-[#0A2444] bg-transparent border-b border-transparent focus:border-[#0077B6] focus:outline-none w-full p-0 truncate">
-                            <button onclick="openSwapModal('cp', ${index})" class="text-slate-400 hover:text-[#0077B6] p-0.5 bg-slate-50 rounded btn-tap"><i class="fas fa-exchange-alt text-[8px] sm:text-[10px]"></i></button>
+                    <div class="flex justify-between items-center mb-1.5 sm:mb-2 pb-1 border-b border-slate-100">
+                        <div class="flex items-center gap-1 sm:gap-1.5 w-[55%]">
+                            <input type="text" value="${p.name}" onchange="updateName('cp', '${p.id}', this.value)" class="font-bold text-xs sm:text-sm text-[#0A2444] bg-transparent border-b border-transparent focus:border-[#0077B6] focus:outline-none w-full p-0 truncate">
+                            <button onclick="openSwapModal('cp', ${index})" class="text-slate-400 hover:text-[#0077B6] p-0.5 sm:p-1 bg-slate-50 rounded btn-tap"><i class="fas fa-exchange-alt text-[9px] sm:text-[10px]"></i></button>
                         </div>
-                        <div class="text-[8px] sm:text-[10px] font-bold text-slate-400 text-right whitespace-nowrap">
+                        <div class="text-[9px] sm:text-[10px] font-bold text-slate-400 text-right whitespace-nowrap">
                             S:<span class="text-slate-700 text-[10px] sm:text-xs stat-value ml-0.5"><span id="cp-goals-${p.id}">0</span>/<span id="cp-total-${p.id}">0</span></span>
                             <span class="text-[#0077B6] ml-0.5">(<span id="cp-rate-${p.id}">0</span>%)</span>
                         </div>
@@ -611,10 +614,10 @@
                     
                     <div class="w-full flex-grow">${typesHtml}</div>
                     
-                    <div class="flex gap-0.5 sm:gap-1 w-full mt-auto pt-0.5">
-                        <button onclick="recordCP('${p.id}', 'goal')" class="flex-[2] bg-[#0077B6] text-white font-bold py-1 sm:py-1.5 rounded shadow-sm btn-tap text-[10px] sm:text-xs leading-none">ｺﾞｰﾙ</button>
-                        <button onclick="recordCP('${p.id}', 'miss')" class="flex-[2] bg-slate-400 text-white font-bold py-1 sm:py-1.5 rounded shadow-sm btn-tap text-[10px] sm:text-xs leading-none">失敗</button>
-                        <button onclick="recordCP('${p.id}', 'error')" class="flex-[1] bg-[#F59E0B] text-white font-bold py-1 sm:py-1.5 rounded shadow-sm btn-tap flex flex-col justify-center items-center leading-none"><span class="text-[7px] sm:text-[8px] mb-0.5 opacity-80 hidden sm:block">ﾐｽ</span><span class="text-[10px] sm:text-xs font-black stat-value" id="cp-errors-${p.id}">0</span></button>
+                    <div class="flex gap-1 w-full mt-auto pt-1 sm:pt-1.5">
+                        <button onclick="recordCP('${p.id}', 'goal')" class="flex-[2] bg-[#0077B6] text-white font-bold py-1.5 sm:py-2 rounded shadow-sm btn-tap text-[11px] sm:text-xs leading-none">ｺﾞｰﾙ</button>
+                        <button onclick="recordCP('${p.id}', 'miss')" class="flex-[2] bg-slate-400 text-white font-bold py-1.5 sm:py-2 rounded shadow-sm btn-tap text-[11px] sm:text-xs leading-none">失敗</button>
+                        <button onclick="recordCP('${p.id}', 'error')" class="flex-[1] bg-[#F59E0B] text-white font-bold py-1 sm:py-1.5 rounded shadow-sm btn-tap flex flex-col justify-center items-center leading-none"><span class="text-[8px] sm:text-[9px] mb-0.5 opacity-90 hidden sm:block">ﾐｽ</span><span class="text-xs sm:text-sm font-black stat-value" id="cp-errors-${p.id}">0</span></button>
                     </div>
                 </div>`;
             }).join('');
